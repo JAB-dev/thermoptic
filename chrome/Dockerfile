@@ -15,10 +15,10 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
     && apt-get update \
     && apt-get install -yq google-chrome-stable --no-install-recommends; \
     else \
-    wget -q -O - https://keyserver.ubuntu.com/pks/lookup?op=get\&search=0xea5e3c4a63f7d4c8 | apt-key add - \
-    && echo "deb http://ppa.launchpad.net/saiarcot895/chromium-beta/ubuntu jammy main" > /etc/apt/sources.list.d/chromium.list \
+    apt-get install -yq software-properties-common --no-install-recommends \
+    && add-apt-repository -y ppa:xtradeb/apps \
     && apt-get update \
-    && apt-get install -yq chromium-browser --no-install-recommends --allow-unauthenticated; \
+    && apt-get install -yq chromium --no-install-recommends; \
     fi
 
 # Install xpra and related packages
@@ -30,7 +30,7 @@ RUN apt-get install -yq xpra python3-paramiko libjs-jquery python3-pil --no-inst
 RUN if [ "$TARGETARCH" = "amd64" ]; then \
     ln -s /usr/bin/google-chrome-stable /usr/bin/chrome; \
     else \
-    ln -s /usr/bin/chromium-browser /usr/bin/chrome; \
+    ln -s /usr/bin/chromium /usr/bin/chrome; \
     fi
 
 RUN ln -sf /usr/share/javascript/jquery/jquery.min.js /usr/share/xpra/www/js/lib/jquery.js
