@@ -61,7 +61,7 @@ services:
       # If you're encountering a bug then set this to true
       # before you file an issue. It will help me debug your
       # problem as verbose statements are printed.
-      DEBUG: false
+      DEBUG: "false"
 
       # Hook that runs on proxy start
       # ON_START_HOOK_FILE_PATH: /work/hooks/onstart.js
