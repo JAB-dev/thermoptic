@@ -22,7 +22,7 @@ LIBGL_ALWAYS_SOFTWARE=${LIBGL_ALWAYS_SOFTWARE:-1}
 CHROME_COMMON_FLAGS=(
   --remote-debugging-port=3002
   --remote-debugging-address=0.0.0.0
-  --remote-allow-origins=*
+  --disable-features=DialMediaRouteProvider
   --no-sandbox
   --user-data-dir="${CHROME_PROFILE_DIR}"
   --no-first-run
@@ -105,7 +105,8 @@ fi
 
 # Forward the 3003 to 0.0.0.0 so we can hit it
 # from the other containers.
-socat TCP-LISTEN:3003,fork TCP:127.0.0.1:3002 &
+# Use reuseaddr to allow quick restarts
+socat TCP-LISTEN:3003,bind=0.0.0.0,reuseaddr,fork TCP:127.0.0.1:3002 &
 
 # Launch chrome restart control server
 echo "[STATUS] Starting Chrome restart control server on port ${CHROME_CONTROL_PORT}..."
