@@ -22,6 +22,7 @@ LIBGL_ALWAYS_SOFTWARE=${LIBGL_ALWAYS_SOFTWARE:-1}
 CHROME_COMMON_FLAGS=(
   --remote-debugging-port=3002
   --remote-debugging-address=0.0.0.0
+  --remote-allow-origins=*
   --no-sandbox
   --user-data-dir="${CHROME_PROFILE_DIR}"
   --no-first-run

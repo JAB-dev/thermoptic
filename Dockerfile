@@ -9,6 +9,7 @@ COPY package-lock.json /work/
 RUN npm install
 RUN npm install --prefix /work/anyproxy commander
 COPY ./anyproxy /work/anyproxy/
+RUN apt-get update && apt-get install -y dos2unix && dos2unix /work/anyproxy/bin/* && apt-get remove -y dos2unix && rm -rf /var/lib/apt/lists/*
 RUN /work/anyproxy/bin/anyproxy-ca --generate
 RUN cp /root/.anyproxy/certificates/rootCA.crt /work/ssl/
 RUN cp /root/.anyproxy/certificates/rootCA.key /work/ssl/
