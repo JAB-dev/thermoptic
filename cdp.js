@@ -349,7 +349,7 @@ function should_retry_cdp_error(err) {
     }
 
     if (is_transient_close_error(err)) {
-            return true;
+        return true;
     }
 
     if (lowered_message.includes('socket hang up') || lowered_message.includes('econnreset')) {
@@ -906,7 +906,7 @@ async function _resource_request(url, protocol, method, path, headers, body) {
         timeout_action(() => reject(new Error('TIMEOUT')));
 
         // Run the resource capture logic
-        (async() => {
+        (async () => {
             let browser = null;
             try {
                 // Get the URL that the fetch() should be served from
@@ -947,7 +947,7 @@ async function _resource_request(url, protocol, method, path, headers, body) {
                     serve_base_page,
                     false,
                     false
-                ).finally(async() => {
+                ).finally(async () => {
                     // Always close the tab, even if navigation or capture fails
                     try {
                         await close_tab(browser, tab, new_tab_info.target_id);
@@ -1018,7 +1018,7 @@ async function _fetch_request(url, protocol, method, path, headers, body, active
             safeReject('TIMEOUT');
         }, config.PROXY_REQUEST_TIMEOUT);
 
-        (async() => {
+        (async () => {
             let browser = null;
             try {
                 let fetch_page_url = get_page_url_from_headers(url, headers);
@@ -1225,7 +1225,7 @@ async function _form_submission(url, protocol, method, path, headers, body, stat
         // Timeout rejection
         timeout_action(() => reject(new Error('TIMEOUT')));
 
-        (async() => {
+        (async () => {
             let browser = null;
             try {
                 // Determine if the user manually submitted the form based
@@ -1312,7 +1312,7 @@ async function _form_submission(url, protocol, method, path, headers, body, stat
                     serve_base_page,
                     false, // No CORS preflight on a form submission
                     files_to_set
-                ).finally(async() => {
+                ).finally(async () => {
                     try {
                         await close_tab(browser, tab, new_tab_info.target_id);
                     } catch (closeErr) {
@@ -1400,7 +1400,7 @@ async function intercept_navigation_and_capture(tab, url_to_host_on, html_to_ser
         // Timeout rejection
         timeout_action(() => reject(new Error('TIMEOUT')));
 
-        (async() => {
+        (async () => {
             const { Fetch } = tab;
 
             await Fetch.enable({
@@ -1420,7 +1420,7 @@ async function intercept_navigation_and_capture(tab, url_to_host_on, html_to_ser
             // where no swapping is required.
             let base_page_handled = !serve_base_page;
 
-            tab.on('Fetch.requestPaused', async({
+            tab.on('Fetch.requestPaused', async ({
                 requestId,
                 request,
                 frameId,
@@ -1639,7 +1639,7 @@ async function _manual_browser_visit(tab, url) {
         // Timeout rejection
         timeout_action(() => reject(new Error('TIMEOUT')));
 
-        (async() => {
+        (async () => {
             try {
                 // Close the tab, delete the bookmark
                 async function clean_up() {
@@ -1659,7 +1659,7 @@ async function _manual_browser_visit(tab, url) {
                     patterns: [{ urlPattern: '*', requestStage: 'Response' }]
                 });
 
-                Fetch.requestPaused(async({ requestId, responseStatusCode, responseHeaders, responseErrorReason }) => {
+                Fetch.requestPaused(async ({ requestId, responseStatusCode, responseHeaders, responseErrorReason }) => {
                     // Our request failed for some reason
                     if (responseErrorReason) {
                         resolve({
@@ -1702,8 +1702,28 @@ async function _manual_browser_visit(tab, url) {
                 await Runtime.enable();
                 await Page.enable();
 
-                await new Promise(resolveLoad => {
-                    Page.loadEventFired(() => resolveLoad());
+                cdp_logger.debug('Waiting for Page.loadEventFired on chrome://bookmarks page...', {
+                    context: 'manual_browser_visit_load'
+                });
+
+                const loadEventTimeout = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Page.loadEventFired timeout after 5 seconds')), 5000);
+                });
+
+                await Promise.race([
+                    new Promise(resolveLoad => {
+                        Page.loadEventFired(() => {
+                            cdp_logger.debug('Page.loadEventFired received!', {
+                                context: 'manual_browser_visit_load'
+                            });
+                            resolveLoad();
+                        });
+                    }),
+                    loadEventTimeout
+                ]);
+
+                cdp_logger.debug('Page.loadEventFired completed, proceeding with bookmark creation', {
+                    context: 'manual_browser_visit_load'
                 });
 
                 let bookmark_id_to_cleanup = -1;
@@ -1834,9 +1854,22 @@ export async function start_browser_session() {
 
 export async function new_tab(browser, initial_url = 'about:blank') {
     const { Target } = browser;
+
+    cdp_logger.debug('Creating new tab with URL', {
+        context: 'new_tab',
+        initial_url
+    });
+
     const { targetId: target_id } = await Target.createTarget({
         url: initial_url
     });
+
+    cdp_logger.debug('Tab created with target ID', {
+        context: 'new_tab',
+        target_id,
+        initial_url
+    });
+
     let tab = null;
     try {
         tab = await CDP({
