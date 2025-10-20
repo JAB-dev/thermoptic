@@ -8,17 +8,17 @@ RUN apt-get update \
     && apt-get install -yq wget curl gnupg libgconf-2-4 ca-certificates xvfb dbus dbus-x11 build-essential python3 --no-install-recommends \
     && apt-get install -yq gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcurl4-gnutls-dev libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils fonts-arphic-ukai fonts-arphic-uming fonts-ipafont-mincho fonts-ipafont-gothic fonts-unfonts-core fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-noto fonts-freefont-ttf unzip socat --no-install-recommends
 
-# Install Chrome (amd64) or Chromium (arm64) based on architecture
+# Install Chrome (amd64) or Brave (arm64) based on architecture
 RUN if [ "$TARGETARCH" = "amd64" ]; then \
     wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
     && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list \
     && apt-get update \
     && apt-get install -yq google-chrome-stable --no-install-recommends; \
     else \
-    apt-get install -yq software-properties-common --no-install-recommends \
-    && add-apt-repository -y ppa:xtradeb/apps \
+    curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg \
+    && curl -fsSLo /etc/apt/sources.list.d/brave-browser-release.sources https://brave-browser-apt-release.s3.brave.com/brave-browser.sources \
     && apt-get update \
-    && apt-get install -yq chromium --no-install-recommends; \
+    && apt-get install -yq brave-browser --no-install-recommends; \
     fi
 
 # Install xpra and related packages
@@ -30,7 +30,7 @@ RUN apt-get install -yq xpra python3-paramiko libjs-jquery python3-pil --no-inst
 RUN if [ "$TARGETARCH" = "amd64" ]; then \
     ln -s /usr/bin/google-chrome-stable /usr/bin/chrome; \
     else \
-    ln -s /usr/bin/chromium /usr/bin/chrome; \
+    ln -s /usr/bin/brave-browser /usr/bin/chrome; \
     fi
 
 RUN ln -sf /usr/share/javascript/jquery/jquery.min.js /usr/share/xpra/www/js/lib/jquery.js

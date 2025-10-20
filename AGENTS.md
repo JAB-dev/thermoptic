@@ -6,11 +6,12 @@
 - `routes.js` handles request classification; `fetchgen.js` and `utils.js` emit browser-side helpers and shared utilities.
 - Hooks live in `hooks/` and must export `async hook`; keep logic focused and human-paced.
 - Vendorized AnyProxy sources stay under `anyproxy/`; refer to `_readme/`, `browser-tests/`, and `tutorials/` for diagrams, fixtures, and walkthroughs.
+- Multi-architecture support: x86_64 uses Google Chrome, ARM64 uses Brave Browser (both Chromium-based with full Chrome internal pages support).
 
 ## Build, Test, and Development Commands
 
 - `npm install` — install repository dependencies once per environment.
-- `google-chrome --remote-debugging-port=9222 --user-data-dir=/tmp/thermoptic` — launch Chrome with a writable profile for CDP control (use `chromium-browser` on ARM64 systems).
+- `google-chrome --remote-debugging-port=9222 --user-data-dir=/tmp/thermoptic` — launch Chrome with a writable profile for CDP control (use `brave-browser` on ARM64 systems).
 - `source env.sh && node server.js` — load credentials, then run the proxy server locally.
 - `docker compose up --build` — build the container image (supports both x86_64 and ARM64), mint certificates, and wait for CDP readiness.
 - `curl --proxy http://<user>:<pass>@127.0.0.1:1234 https://ja4db.com/id/ja4h/` — verify outbound fingerprints remain browser-identical.
