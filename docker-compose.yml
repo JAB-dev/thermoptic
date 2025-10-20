@@ -3,6 +3,9 @@ services:
     build:
       context: ./chrome/
     mem_limit: 2g
+    networks:
+      thermoptic_net:
+        ipv4_address: 172.20.0.10
     volumes:
       - ./chrome-profile:/home/chromeuser/profile
     environment:
@@ -32,6 +35,8 @@ services:
       - 127.0.0.1:14111:14111
   thermoptic:
     build: .
+    networks:
+      - thermoptic_net
     volumes:
       - ./ssl:/work/cassl
       - ./hooks:/work/hooks
@@ -50,7 +55,8 @@ services:
 
       # This is the hostname that thermoptic
       # will use to contact chrome
-      CHROME_DEBUGGING_HOST: chrome
+      # Using IP address to bypass Chrome's Host header validation
+      CHROME_DEBUGGING_HOST: 172.20.0.10
 
       # The username for thermoptic HTTP proxy
       PROXY_USERNAME: changeme
@@ -96,3 +102,10 @@ services:
       # Port of the Chrome "controller" service which is used
       # to restart Chrome in the event of a freeze/jam.
       CHROME_CONTROL_PORT: 9223
+
+networks:
+  thermoptic_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
