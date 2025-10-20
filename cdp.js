@@ -1658,6 +1658,18 @@ async function _manual_browser_visit(tab, url) {
                 await Fetch.enable({
                     patterns: [{ urlPattern: '*', requestStage: 'Response' }]
                 });
+                
+                // Enable console to see browser logs
+                const { Console } = tab;
+                await Console.enable();
+                Console.messageAdded(({ message }) => {
+                    cdp_logger.debug('Browser console message', {
+                        context: 'manual_browser_visit_console',
+                        level: message.level,
+                        text: message.text,
+                        url: message.url
+                    });
+                });
 
                 Fetch.requestPaused(async ({ requestId, responseStatusCode, responseHeaders, responseErrorReason }) => {
                     // Our request failed for some reason
@@ -1731,49 +1743,102 @@ async function _manual_browser_visit(tab, url) {
                 const create_bookmark_script = `
 (async () => {
     async function create_bookmark(url) {
-        const proxy = await import('chrome://bookmarks-side-panel.top-chrome/bookmarks_api_proxy.js');
-        const booker = proxy.BookmarksApiProxyImpl.getInstance();
+        try {
+            console.log('[BOOKMARK] Starting bookmark creation for:', url);
+            const proxy = await import('chrome://bookmarks-side-panel.top-chrome/bookmarks_api_proxy.js');
+            console.log('[BOOKMARK] Imported bookmarks_api_proxy.js');
+            const booker = proxy.BookmarksApiProxyImpl.getInstance();
+            console.log('[BOOKMARK] Got BookmarksApiProxyImpl instance');
 
-        const top_level_folder = document.querySelector("body > power-bookmarks-list").getParentFolder_();
-        booker.bookmarkCurrentTabInFolder(top_level_folder.id);
+            const elem = document.querySelector("body > power-bookmarks-list");
+            console.log('[BOOKMARK] Found power-bookmarks-list element:', !!elem);
+            const top_level_folder = elem?.getParentFolder_();
+            console.log('[BOOKMARK] Got top level folder:', top_level_folder);
+            
+            booker.bookmarkCurrentTabInFolder(top_level_folder.id);
+            console.log('[BOOKMARK] Called bookmarkCurrentTabInFolder');
 
-        const created_bookmarks = await chrome.bookmarks.getRecent(1);
-        const created_bookmark = created_bookmarks[0];
-        chrome.bookmarks.update(created_bookmark.id, {
-            title: 'tmpBookmark',
-            url: url
-        });
-        return created_bookmark.id;
+            const created_bookmarks = await chrome.bookmarks.getRecent(1);
+            console.log('[BOOKMARK] Got recent bookmarks:', created_bookmarks);
+            const created_bookmark = created_bookmarks[0];
+            chrome.bookmarks.update(created_bookmark.id, {
+                title: 'tmpBookmark',
+                url: url
+            });
+            console.log('[BOOKMARK] Updated bookmark, returning ID:', created_bookmark.id);
+            return created_bookmark.id;
+        } catch (err) {
+            console.error('[BOOKMARK] Error during bookmark creation:', err.message, err.stack);
+            throw err;
+        }
     }
 
     return create_bookmark(${JSON.stringify(url)});
 })();
                 `;
 
+                cdp_logger.debug('Evaluating bookmark creation script', {
+                    context: 'manual_browser_visit_bookmark_create'
+                });
+
                 const create_bookmark_result = await Runtime.evaluate({
                     expression: create_bookmark_script,
                     awaitPromise: true
                 });
+
+                cdp_logger.debug('Bookmark creation script result', {
+                    context: 'manual_browser_visit_bookmark_create',
+                    result: create_bookmark_result
+                });
+
+                if (create_bookmark_result.exceptionDetails) {
+                    throw new Error(`Bookmark creation failed: ${JSON.stringify(create_bookmark_result.exceptionDetails)}`);
+                }
+
                 bookmark_id_to_cleanup = create_bookmark_result.result.value;
+
+                cdp_logger.debug('Executing bookmark visit script', {
+                    context: 'manual_browser_visit_bookmark_visit',
+                    bookmark_id: bookmark_id_to_cleanup
+                });
 
                 const visit_bookmark_script = `
 (async () => {
-    const proxy = await import('chrome://bookmarks-side-panel.top-chrome/bookmarks_api_proxy.js');
-    const booker = proxy.BookmarksApiProxyImpl.getInstance();
-    booker.openBookmark(parseInt(JSON.stringify(${bookmark_id_to_cleanup})), 0, {
-        "middleButton": false,
-        "altKey": false,
-        "ctrlKey": false,
-        "metaKey": false,
-        "shiftKey": false
-    }, 0);
+    try {
+        console.log('[BOOKMARK] Starting bookmark visit for ID:', ${bookmark_id_to_cleanup});
+        const proxy = await import('chrome://bookmarks-side-panel.top-chrome/bookmarks_api_proxy.js');
+        console.log('[BOOKMARK] Imported bookmarks_api_proxy.js for visit');
+        const booker = proxy.BookmarksApiProxyImpl.getInstance();
+        console.log('[BOOKMARK] Got BookmarksApiProxyImpl instance for visit');
+        booker.openBookmark(parseInt(JSON.stringify(${bookmark_id_to_cleanup})), 0, {
+            "middleButton": false,
+            "altKey": false,
+            "ctrlKey": false,
+            "metaKey": false,
+            "shiftKey": false
+        }, 0);
+        console.log('[BOOKMARK] Called openBookmark');
+        return true;
+    } catch (err) {
+        console.error('[BOOKMARK] Error during bookmark visit:', err.message, err.stack);
+        throw err;
+    }
 })();
                 `;
 
-                await Runtime.evaluate({
+                const visit_result = await Runtime.evaluate({
                     expression: visit_bookmark_script,
                     awaitPromise: true
                 });
+                
+                cdp_logger.debug('Bookmark visit script result', {
+                    context: 'manual_browser_visit_bookmark_visit',
+                    result: visit_result
+                });
+                
+                if (visit_result.exceptionDetails) {
+                    throw new Error(`Bookmark visit failed: ${JSON.stringify(visit_result.exceptionDetails)}`);
+                }
             } catch (err) {
                 reject(err);
             }
