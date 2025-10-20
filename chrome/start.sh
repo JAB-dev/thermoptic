@@ -130,9 +130,11 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Launch chrome with the debugging port
+# Uses /usr/bin/chrome which is symlinked during Docker build
+# to either google-chrome-stable (amd64) or chromium-browser (arm64)
 while true; do
   set +e
-  /usr/bin/google-chrome-stable \
+  /usr/bin/chrome \
     "${CHROME_COMMON_FLAGS[@]}" \
     "about:blank" &
   chrome_pid=$!
